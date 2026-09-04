@@ -1,41 +1,45 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:get_storage/get_storage.dart';
 
-class RegisterService {
-  static const String _url = 'https://xpanel.tecclub.site/api/v1/signup';
+class ChangePasswordService {
+  static const String _url = 'https://xpanel.tecclub.site/api/v1/me/password';
 
-  static Future<Map<String, dynamic>> register({
-    required String name,
-    required String email,
-    required String password,
-    String? passwordConfirmation,
+  static Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
   }) async {
     try {
-      final response = await http.post(
+      final storage = GetStorage();
+      final String? token = storage.read('token');
+
+      final headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      final response = await http.put(
         Uri.parse(_url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: headers,
         body: jsonEncode({
-          'name': name,
-          'email': email,
-          'password': password,
-          'password_confirmation': passwordConfirmation ?? password,
+          'current_password': currentPassword,
+          'password': newPassword,
+          'password_confirmation': confirmPassword,
         }),
       );
 
       final data = jsonDecode(response.body);
-      
-      if (response.statusCode == 200 || response.statusCode == 201) {
+
+      if (response.statusCode == 200) {
         return {
           'success': true,
-          'message': data['message'] ?? 'Account created successfully',
+          'message': data['message'] ?? 'Password updated successfully.',
           'data': data,
         };
       } else {
-        // Handle validation errors or custom message
-        String errorMessage = data['message'] ?? 'Registration failed';
+        String errorMessage = data['message'] ?? 'Failed to update password';
         if (data['errors'] != null && data['errors'] is Map) {
           final errors = data['errors'] as Map;
           if (errors.isNotEmpty) {

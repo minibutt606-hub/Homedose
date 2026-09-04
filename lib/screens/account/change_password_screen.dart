@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:homedose/constants/app_colors.dart';
+import 'package:homedose/services/change_password_service.dart';
 import 'package:homedose/widgets/custom_text_field.dart';
 import 'package:homedose/widgets/premium_snackbar.dart';
 
@@ -30,7 +31,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  void _updatePassword() {
+  Future<void> _updatePassword() async {
     final current = _currentPasswordController.text;
     final newPass = _newPasswordController.text;
     final confirm = _confirmPasswordController.text;
@@ -73,15 +74,26 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     setState(() => _isLoading = true);
 
-    // Mock API delay
-    Future.delayed(const Duration(seconds: 1), () {
-      setState(() => _isLoading = false);
+    final result = await ChangePasswordService.changePassword(
+      currentPassword: current,
+      newPassword: newPass,
+      confirmPassword: confirm,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
       Get.back();
       PremiumSnackbar.showSuccess(
         title: 'Success',
-        message: 'Your password has been changed successfully.',
+        message: result['message'] ?? 'Your password has been changed successfully.',
       );
-    });
+    } else {
+      PremiumSnackbar.showError(
+        title: 'Update Failed',
+        message: result['message'] ?? 'Unable to update password',
+      );
+    }
   }
 
   @override
